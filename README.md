@@ -27,7 +27,7 @@ The Fibonacci Sequence Explorer is a cutting-edge mathematical tool that combine
 - Responsive grid layout adapting to all screen sizes
 - Syntax-highlighted code showcase with tab switching
 
-## Architecture
+```## Architecture
 
 ### Frontend Structure
 index.html          # Single-page application
@@ -40,7 +40,7 @@ index.html          # Single-page application
 └── UI Controllers
 plain
 Copy
-
+```
 ### Algorithm Implementation
 
 The application implements three language variations:
