@@ -1,0 +1,969 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fibonacci Sequence Explorer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --golden: #d4af37;
+      --dark: #0a0a0a;
+      --darker: #050505;
+      --light: #f5f5f5;
+      --accent: #ff6b6b;
+      --secondary: #4ecdc4;
+      --glow: rgba(212, 175, 55, 0.3);
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: var(--darker);
+      color: var(--light);
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    .cursor {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--golden);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transition: transform 0.1s;
+      mix-blend-mode: difference;
+    }
+
+    .cursor-follower {
+      width: 40px;
+      height: 40px;
+      background: var(--glow);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      z-index: 9998;
+      transition: transform 0.3s ease-out;
+    }
+
+    .noise {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.03;
+      z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 4rem 0;
+      position: relative;
+    }
+
+    h1 {
+      font-size: clamp(3rem, 10vw, 8rem);
+      background: linear-gradient(135deg, var(--golden) 0%, #fff 50%, var(--golden) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.05em;
+      position: relative;
+      display: inline-block;
+    }
+
+    h1::after {
+      content: 'FIBONACCI';
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(212, 175, 55, 0.3) 50%, transparent 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      animation: shimmer 3s infinite;
+      filter: blur(2px);
+    }
+
+    @keyframes shimmer {
+
+      0%,
+      100% {
+        transform: translateX(-100%);
+      }
+
+      50% {
+        transform: translateX(100%);
+      }
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--golden);
+      margin-top: 1rem;
+      opacity: 0.8;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+    }
+
+    .golden-spiral {
+      width: 300px;
+      height: 300px;
+      margin: 3rem auto;
+      position: relative;
+    }
+
+    .spiral-svg {
+      width: 100%;
+      height: 100%;
+      animation: rotate 20s linear infinite;
+    }
+
+    @keyframes rotate {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .main-interface {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      margin: 4rem 0;
+    }
+
+    @media (max-width: 900px) {
+      .main-interface {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, var(--golden), transparent, var(--golden));
+      border-radius: 20px;
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s;
+    }
+
+    .panel:hover::before {
+      opacity: 0.5;
+      animation: borderRotate 3s linear infinite;
+    }
+
+    @keyframes borderRotate {
+      0% {
+        filter: hue-rotate(0deg);
+      }
+
+      100% {
+        filter: hue-rotate(360deg);
+      }
+    }
+
+    .panel-title {
+      font-size: 1.5rem;
+      color: var(--golden);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .panel-title::before {
+      content: '⟩⟩';
+      color: var(--secondary);
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    input[type="number"] {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      color: var(--light);
+      padding: 1rem;
+      font-size: 1.2rem;
+      border-radius: 10px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--golden);
+      box-shadow: 0 0 20px var(--glow);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: transparent;
+      border: 2px solid var(--golden);
+      color: var(--golden);
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      cursor: none;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+      border-radius: 5px;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:hover {
+      background: var(--golden);
+      color: var(--dark);
+      box-shadow: 0 0 30px var(--glow);
+    }
+
+    .result-display {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 10px;
+      padding: 2rem;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-value {
+      font-size: clamp(2rem, 5vw, 4rem);
+      color: var(--golden);
+      font-weight: bold;
+      word-break: break-all;
+      text-align: center;
+      text-shadow: 0 0 20px var(--glow);
+    }
+
+    .result-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+    }
+
+    .sequence-display {
+      max-height: 400px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+
+    .sequence-display::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .sequence-display::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+    }
+
+    .sequence-display::-webkit-scrollbar-thumb {
+      background: var(--golden);
+      border-radius: 4px;
+    }
+
+    .fib-item {
+      display: flex;
+      align-items: center;
+      padding: 0.8rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .fib-item:hover {
+      background: rgba(212, 175, 55, 0.1);
+      transform: translateX(10px);
+    }
+
+    .fib-index {
+      color: var(--secondary);
+      font-weight: bold;
+      min-width: 60px;
+      font-size: 0.9rem;
+    }
+
+    .fib-value {
+      color: var(--light);
+      font-family: 'Courier New', monospace;
+      flex: 1;
+      text-align: right;
+      font-size: 1.1rem;
+    }
+
+    .fib-bar {
+      height: 4px;
+      background: linear-gradient(90deg, var(--golden), var(--secondary));
+      margin-left: 1rem;
+      border-radius: 2px;
+      transition: width 1s ease-out;
+    }
+
+    .visualization {
+      grid-column: 1 / -1;
+      height: 500px;
+      position: relative;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin: 3rem 0;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 15px;
+      padding: 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--golden);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      color: var(--golden);
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .code-showcase {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 15px;
+      padding: 2rem;
+      margin: 3rem 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .code-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 1rem;
+    }
+
+    .code-tab {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      padding: 0.5rem 1rem;
+      cursor: none;
+      font-family: inherit;
+      transition: all 0.3s;
+      border-radius: 5px;
+    }
+
+    .code-tab.active {
+      color: var(--golden);
+      background: rgba(212, 175, 55, 0.1);
+    }
+
+    .code-tab:hover {
+      color: var(--light);
+    }
+
+    .code-content {
+      display: none;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+
+    .code-content.active {
+      display: block;
+    }
+
+    .code-line {
+      padding: 0.2rem 0;
+      padding-left: 1rem;
+      border-left: 2px solid transparent;
+    }
+
+    .code-line:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-left-color: var(--golden);
+    }
+
+    .keyword {
+      color: #ff6b6b;
+    }
+
+    .function {
+      color: #4ecdc4;
+    }
+
+    .number {
+      color: #d4af37;
+    }
+
+    .string {
+      color: #95e1d3;
+    }
+
+    .comment {
+      color: #636e72;
+      font-style: italic;
+    }
+
+    footer {
+      text-align: center;
+      padding: 4rem 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 4rem;
+    }
+
+    .footer-text {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.9rem;
+    }
+
+    .phi-symbol {
+      display: inline-block;
+      color: var(--golden);
+      font-size: 1.2em;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(212, 175, 55, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--golden);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .matrix-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="cursor"></div>
+  <div class="cursor-follower"></div>
+  <div class="noise"></div>
+  <canvas class="matrix-bg" id="matrix"></canvas>
+
+  <div class="container">
+    <header>
+      <h1>FIBONACCI</h1>
+      <p class="subtitle">The Golden Sequence Explorer</p>
+      <div class="golden-spiral">
+        <svg class="spiral-svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="spiralGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#d4af37;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#4ecdc4;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <path d="M50,50 
+                             Q50,10 90,50 
+                             Q90,90 50,90 
+                             Q10,90 10,50 
+                             Q10,10 50,10
+                             Q70,10 70,30
+                             Q70,50 50,50
+                             Q30,50 30,70
+                             Q30,90 50,90" fill="none" stroke="url(#spiralGrad)" stroke-width="0.5" stroke-linecap="round" />
+          <circle cx="50" cy="50" r="2" fill="#d4af37" />
+        </svg>
+      </div>
+    </header>
+
+    <div class="main-interface">
+      <div class="panel">
+        <h2 class="panel-title">Calculator</h2>
+        <div class="input-group">
+          <label for="fibInput">Enter Index (n)</label>
+          <input type="number" id="fibInput" min="0" max="10000" value="10" placeholder="0-10000">
+        </div>
+        <div class="btn-group">
+          <button onclick="calculateFib()">Calculate</button>
+          <button onclick="generateSequence()">Sequence</button>
+          <button onclick="clearAll()">Clear</button>
+        </div>
+        <div class="result-display" id="resultDisplay">
+          <div class="result-value" id="resultValue">55</div>
+          <div class="result-label">Fibonacci Number</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel-title">Sequence Generator</h2>
+        <div class="input-group">
+          <label for="seqLength">Sequence Length</label>
+          <input type="number" id="seqLength" min="1" max="100" value="20" placeholder="1-100">
+        </div>
+        <div class="btn-group">
+          <button onclick="showSequence()">Generate</button>
+          <button onclick="downloadSequence()">Export</button>
+        </div>
+        <div class="sequence-display" id="sequenceDisplay">
+          <div class="fib-item">
+            <span class="fib-index">F(0)</span>
+            <span class="fib-value">0</span>
+            <div class="fib-bar" style="width: 0%"></div>
+          </div>
+          <div class="fib-item">
+            <span class="fib-index">F(1)</span>
+            <span class="fib-value">1</span>
+            <div class="fib-bar" style="width: 5%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel visualization">
+        <canvas id="fibCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number" id="phiApprox">1.61803</div>
+        <div class="stat-label">Phi (Golden Ratio)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="totalCalcs">0</div>
+        <div class="stat-label">Calculations Made</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="maxComputed">0</div>
+        <div class="stat-label">Max Index Computed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="avgTime">0ms</div>
+        <div class="stat-label">Avg Compute Time</div>
+      </div>
+    </div>
+
+    <div class="code-showcase">
+      <div class="code-tabs">
+        <button class="code-tab active" onclick="switchTab('js')">JavaScript</button>
+        <button class="code-tab" onclick="switchTab('python')">Python</button>
+        <button class="code-tab" onclick="switchTab('java')">Java</button>
+      </div>
+      <div class="code-content active" id="js-code">
+        <div class="code-line"><span class="keyword">function</span> <span class="function">fibonacci</span>(n) {</div>
+        <div class="code-line">&nbsp;&nbsp;<span class="keyword">if</span> (n <= <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</div>
+        <div class="code-line">&nbsp;&nbsp;<span class="keyword">if</span> (n === <span class="number">1</span>) <span class="keyword">return</span> <span class="number">1</span>;</div>
+        <div class="code-line">&nbsp;&nbsp;<span class="keyword">let</span> prev = <span class="number">0</span>;</div>
+        <div class="code-line">&nbsp;&nbsp;<span class="keyword">let</span> curr = <span class="number">1</span>;</div>
+        <div class="code-line">&nbsp;&nbsp;<span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">2</span>; i <= n; i++) {</div>
+            <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span> temp = curr;</div>
+            <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;curr = prev + curr;</div>
+            <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;prev = temp;</div>
+            <div class="code-line">&nbsp;&nbsp;}</div>
+            <div class="code-line">&nbsp;&nbsp;<span class="keyword">return</span> curr;</div>
+            <div class="code-line">}</div>
+        </div>
+        <div class="code-content" id="python-code">
+          <div class="code-line"><span class="keyword">def</span> <span class="function">fibonacci</span>(n):</div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">if</span> n <= <span class="number">0</span>:</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">0</span></div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">if</span> n == <span class="number">1</span>:</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">1</span></div>
+          <div class="code-line">&nbsp;&nbsp;prev, curr = <span class="number">0</span>, <span class="number">1</span></div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="number">2</span>, n + <span class="number">1</span>):</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;prev, curr = curr, prev + curr</div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">return</span> curr</div>
+        </div>
+        <div class="code-content" id="java-code">
+          <div class="code-line"><span class="keyword">public static</span> <span class="function">long</span> <span class="function">fibonacci</span>(<span class="keyword">int</span> n) {</div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">if</span> (n <= <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">if</span> (n == <span class="number">1</span>) <span class="keyword">return</span> <span class="number">1</span>;</div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">long</span> prev = <span class="number">0</span>;</div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">long</span> curr = <span class="number">1</span>;</div>
+          <div class="code-line">&nbsp;&nbsp;<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i <= n; i++) {</div>
+              <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">long</span> temp = curr;</div>
+              <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;curr = prev + curr;</div>
+              <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;prev = temp;</div>
+              <div class="code-line">&nbsp;&nbsp;}</div>
+              <div class="code-line">&nbsp;&nbsp;<span class="keyword">return</span> curr;</div>
+              <div class="code-line">}</div>
+          </div>
+        </div>
+
+        <footer>
+          <p class="footer-text">
+            Crafted with <span class="phi-symbol">φ</span> precision |
+            Mathematics is the language of nature
+          </p>
+        </footer>
+      </div>
+
+      <script>
+        // Custom cursor
+        const cursor = document.querySelector('.cursor');
+        const follower = document.querySelector('.cursor-follower');
+        document.addEventListener('mousemove', (e) => {
+          cursor.style.left = e.clientX - 10 + 'px';
+          cursor.style.top = e.clientY - 10 + 'px';
+          setTimeout(() => {
+            follower.style.left = e.clientX - 20 + 'px';
+            follower.style.top = e.clientY - 20 + 'px';
+          }, 100);
+        });
+        document.addEventListener('mousedown', () => {
+          cursor.style.transform = 'scale(0.8)';
+        });
+        document.addEventListener('mouseup', () => {
+          cursor.style.transform = 'scale(1)';
+        });
+        // Matrix background
+        const matrixCanvas = document.getElementById('matrix');
+        const matrixCtx = matrixCanvas.getContext('2d');
+
+        function resizeMatrix() {
+          matrixCanvas.width = window.innerWidth;
+          matrixCanvas.height = window.innerHeight;
+        }
+        resizeMatrix();
+        window.addEventListener('resize', resizeMatrix);
+        const chars = '01φF';
+        const fontSize = 14;
+        const columns = matrixCanvas.width / fontSize;
+        const drops = [];
+        for (let i = 0; i < columns; i++) {
+          drops[i] = Math.random() * -100;
+        }
+
+        function drawMatrix() {
+          matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+          matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+          matrixCtx.fillStyle = '#d4af37';
+          matrixCtx.font = fontSize + 'px monospace';
+          for (let i = 0; i < drops.length; i++) {
+            const text = chars[Math.floor(Math.random() * chars.length)];
+            matrixCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+              drops[i] = 0;
+            }
+            drops[i]++;
+          }
+        }
+        setInterval(drawMatrix, 50);
+        // Fibonacci logic with memoization
+        const memo = new Map();
+        let totalCalculations = 0;
+        let maxIndex = 0;
+        let totalTime = 0;
+
+        function fibonacci(n) {
+          if (n <= 0) return 0n;
+          if (n === 1) return 1n;
+          if (memo.has(n)) return memo.get(n);
+          let prev = 0n;
+          let curr = 1n;
+          for (let i = 2; i <= n; i++) {
+            let temp = curr;
+            curr = prev + curr;
+            prev = temp;
+          }
+          memo.set(n, curr);
+          return curr;
+        }
+
+        function calculateFib() {
+          const input = document.getElementById('fibInput');
+          const n = parseInt(input.value);
+          if (isNaN(n) || n < 0 || n > 10000) {
+            alert('Please enter a valid number between 0 and 10000');
+            return;
+          }
+          const start = performance.now();
+          const result = fibonacci(n);
+          const end = performance.now();
+          totalCalculations++;
+          if (n > maxIndex) maxIndex = n;
+          totalTime += (end - start);
+          document.getElementById('resultValue').textContent = result.toString();
+          updateStats();
+          drawVisualization(n);
+        }
+
+        function generateSequence() {
+          const input = document.getElementById('seqLength');
+          const length = parseInt(input.value);
+          if (isNaN(length) || length < 1 || length > 100) {
+            alert('Please enter a valid length between 1 and 100');
+            return;
+          }
+          const display = document.getElementById('sequenceDisplay');
+          display.innerHTML = '';
+          let maxVal = 0n;
+          const sequence = [];
+          for (let i = 0; i < length; i++) {
+            const val = fibonacci(i);
+            sequence.push({
+              index: i,
+              value: val
+            });
+            if (val > maxVal) maxVal = val;
+          }
+          sequence.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = 'fib-item';
+            div.style.animationDelay = (idx * 0.05) + 's';
+            const percentage = maxVal > 0n ?
+              Number((item.value * 100n) / maxVal) : 0;
+            div.innerHTML = `
+                    <span class="fib-index">F(${item.index})</span>
+                    <span class="fib-value">${item.value.toString()}</span>
+                    <div class="fib-bar" style="width: 0%"></div>
+                `;
+            display.appendChild(div);
+            setTimeout(() => {
+              div.querySelector('.fib-bar').style.width = percentage + '%';
+            }, idx * 50);
+          });
+        }
+
+        function showSequence() {
+          generateSequence();
+        }
+
+        function clearAll() {
+          document.getElementById('fibInput').value = '';
+          document.getElementById('resultValue').textContent = '0';
+          document.getElementById('sequenceDisplay').innerHTML = '';
+          memo.clear();
+          totalCalculations = 0;
+          maxIndex = 0;
+          totalTime = 0;
+          updateStats();
+        }
+
+        function downloadSequence() {
+          const length = parseInt(document.getElementById('seqLength').value) || 20;
+          let content = 'Fibonacci Sequence\n==================\n\n';
+          for (let i = 0; i < length; i++) {
+            content += `F(${i}) = ${fibonacci(i).toString()}\n`;
+          }
+          const blob = new Blob([content], {
+            type: 'text/plain'
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `fibonacci_sequence_${length}.txt`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        function updateStats() {
+          document.getElementById('totalCalcs').textContent = totalCalculations;
+          document.getElementById('maxComputed').textContent = maxIndex;
+          document.getElementById('avgTime').textContent =
+            totalCalculations > 0 ? (totalTime / totalCalculations).toFixed(2) + 'ms' : '0ms';
+          if (maxIndex >= 2) {
+            const ratio = Number(fibonacci(maxIndex)) / Number(fibonacci(maxIndex - 1));
+            document.getElementById('phiApprox').textContent = ratio.toFixed(5);
+          }
+        }
+
+        function switchTab(lang) {
+          document.querySelectorAll('.code-tab').forEach(tab => tab.classList.remove('active'));
+          document.querySelectorAll('.code-content').forEach(content => content.classList.remove('active'));
+          event.target.classList.add('active');
+          document.getElementById(lang + '-code').classList.add('active');
+        }
+        // Canvas visualization
+        const canvas = document.getElementById('fibCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+          canvas.width = canvas.offsetWidth;
+          canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        function drawVisualization(maxN) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const centerX = canvas.width / 2;
+          const centerY = canvas.height / 2;
+          const maxRadius = Math.min(centerX, centerY) * 0.8;
+          ctx.strokeStyle = '#d4af37';
+          ctx.lineWidth = 2;
+          let angle = 0;
+          const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+          for (let i = 0; i < Math.min(maxN, 200); i++) {
+            const r = Math.sqrt(i) * (maxRadius / Math.sqrt(Math.min(maxN, 200)));
+            const x = centerX + r * Math.cos(angle);
+            const y = centerY + r * Math.sin(angle);
+            const size = 2 + (i / maxN) * 8;
+            const hue = (i / maxN) * 60 + 40;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+            ctx.fill();
+            if (i > 0) {
+              ctx.beginPath();
+              ctx.moveTo(prevX, prevY);
+              ctx.lineTo(x, y);
+              ctx.strokeStyle = `hsla(${hue}, 70%, 50%, 0.3)`;
+              ctx.stroke();
+            }
+            prevX = x;
+            prevY = y;
+            angle += goldenAngle;
+          }
+        }
+        let prevX = 0,
+          prevY = 0;
+        // Initialize
+        calculateFib();
+        generateSequence();
+        drawVisualization(50);
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+          if (e.ctrlKey && e.key === 'Enter') {
+            calculateFib();
+          }
+        });
+      </script>
+</body>
+
+</html>
